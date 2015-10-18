@@ -1,0 +1,53 @@
+package net.kerfuffle.Server;
+
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.util.ArrayList;
+
+import net.kerfuffle.Utilities.Coord;
+import net.kerfuffle.Utilities.RGB;
+
+public class Server {
+
+	private int port;
+	
+	ArrayList <PlayerData> playerDataList = new ArrayList<PlayerData>();
+	ArrayList <Client> clientList = new ArrayList<Client>();
+	
+	public Server(int port)
+	{
+		this.port = port;
+	}
+	
+	public void admitClient()
+	{
+		DatagramSocket serverSocket;
+		
+		try
+		{
+			serverSocket = new DatagramSocket(port);
+			byte receive[] = new byte[16];
+			DatagramPacket receivePacket = new DatagramPacket(receive, receive.length);
+			serverSocket.receive(receivePacket);
+			String initData = new String(receivePacket.getData());
+			String info[] = initData.split(";");
+			String sp[] = info[0].split(",");
+			
+			String colorsp[] = sp[3].split("/");
+			Coord pos = new Coord(Integer.parseInt(sp[0]), Integer.parseInt(sp[1]));
+			float speed = Integer.parseInt(sp[2]);
+			RGB color = new RGB(Float.parseFloat(colorsp[0]), Float.parseFloat(colorsp[1]), Float.parseFloat(colorsp[2]));
+			String name = sp[4];
+			
+			PlayerData pd = new PlayerData(pos, speed, color, name);
+			playerDataList.add(pd);
+			
+			InetAddress tempIp = receivePacket.getAddress();
+			int tempPort = receivePacket.getPort();
+			clientList.add(new Client(tempIp, tempPort));
+		}
+	}
+	
+}

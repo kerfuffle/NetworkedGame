@@ -1,0 +1,133 @@
+package net.kerfuffle.Server;
+
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.SocketException;
+import java.util.ArrayList;
+
+import net.kerfuffle.Utilities.Coord;
+import net.kerfuffle.Utilities.RGB;
+
+public class Server {
+
+	private int port;
+	private DatagramSocket serverSocket;
+
+	ArrayList <PlayerData> playerDataList = new ArrayList<PlayerData>();
+	ArrayList <Client> clientList = new ArrayList<Client>();
+	ArrayList <Thread> threads = new ArrayList<Thread>();
+	ArrayList <Boolean> running = new ArrayList<Boolean>();
+
+	public Server(int port)
+	{
+		this.port = port;
+
+		try 
+		{
+			serverSocket = new DatagramSocket(port);
+		} 
+		catch (SocketException e) 
+		{
+			e.printStackTrace();
+		}
+	}
+
+	public void admitClients()
+	{
+		try
+		{
+			byte receive[] = new byte[64];
+			DatagramPacket receivePacket = new DatagramPacket(receive, receive.length);
+			serverSocket.receive(receivePacket);
+			String initData = new String(receivePacket.getData());
+			String info[] = initData.split(";");
+			String sp[] = info[0].split(",");
+
+			String colorsp[] = sp[3].split("/");
+			Coord pos = new Coord(Integer.parseInt(sp[0]), Integer.parseInt(sp[1]));
+			float speed = Integer.parseInt(sp[2]);
+			RGB color = new RGB(Float.parseFloat(colorsp[0]), Float.parseFloat(colorsp[1]), Float.parseFloat(colorsp[2]));
+			String name = sp[4];
+
+			PlayerData pd = new PlayerData(pos, speed, color, name);
+			playerDataList.add(pd);
+
+			InetAddress tempIp = receivePacket.getAddress();
+			int tempPort = receivePacket.getPort();
+			clientList.add(new Client(tempIp, tempPort));
+
+			DatagramPacket sendPacket = new DatagramPacket(new String("Success;").getBytes(), 16, tempIp, tempPort);
+			serverSocket.send(sendPacket);
+
+			for (int i = 0; i < playerDataList.size()-1; i++)		//minus 1 b/c the last playerData is the one just added
+			{
+				byte send[] = playerDataList.get(i).toInitString().getBytes();
+				DatagramPacket sendInitData = new DatagramPacket(send, send.length, tempIp, tempPort);
+				serverSocket.send(sendInitData);
+			}
+
+			threads.add(new Thread());
+		}
+		catch (SocketException e) 
+		{
+			System.err.println("Port: " + port + " is occupied.");
+			System.exit(1);
+		} 
+		catch (IOException e) 
+		{
+			e.printStackTrace();
+		} 
+	}
+
+	static int CURRENTTHREAD;
+	public void updateThreads()
+	{
+
+		for (int i = 0; i < clientList.size(); i++)
+		{
+			CURRENTTHREAD = i;
+			Thread t = new Thread(new Runnable()
+			{
+				public void run() 
+				{
+					for (int j = 0; j < playerDataList.size(); j++)
+					{
+						if (j == CURRENTTHREAD)
+						{
+							continue;
+						}
+						byte send[] = playerDataList.get(j).toString().getBytes();
+						DatagramPacket sendPacket = new DatagramPacket(send, send.length, clientList.get(CURRENTTHREAD).getIp(), clientList.get(CURRENTTHREAD).getPort());
+						try 
+						{
+							serverSocket.send(sendPacket);
+						} 
+						catch (IOException e) 
+						{
+							e.printStackTrace();
+						}
+					}
+				}
+
+			});
+			threads.set(i, t);
+			running.add(false);
+		}
+	}
+	
+	public void run()
+	{
+		for (int i = 0; i < threads.size(); i++)
+		{
+			if (!running.get(i))
+			{
+				threads.get(i).start();
+				running.set(i, true);
+			}
+		}
+	}
+
+}

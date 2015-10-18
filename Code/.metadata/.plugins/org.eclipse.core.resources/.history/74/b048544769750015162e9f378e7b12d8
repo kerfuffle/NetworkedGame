@@ -1,0 +1,5 @@
+package net.kerfuffle.NetworkedGame;
+
+public class Connection {
+
+}

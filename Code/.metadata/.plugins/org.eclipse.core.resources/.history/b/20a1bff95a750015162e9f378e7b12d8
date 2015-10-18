@@ -1,0 +1,5 @@
+package net.kerfuffle.Server;
+
+public class PlayerData {
+
+}

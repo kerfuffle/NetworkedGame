@@ -1,0 +1,28 @@
+package net.kerfuffle.Server;
+
+import net.kerfuffle.Utilities.Coord;
+import net.kerfuffle.Utilities.RGB;
+import net.kerfuffle.Utilities.Size;
+
+public class PlayerData {
+
+	private Coord pos;
+	private Size size;
+	private float speed;
+	private RGB color;
+	private String name;
+	
+	public PlayerData(Coord pos, float speed, RGB color, String name)
+	{
+		this.pos = pos;
+		this.speed = speed;
+		this.color = color;
+		this.name = name;
+	}
+	
+	public void setPos(Coord pos)
+	{
+		this.pos = pos;
+	}
+	
+}
